@@ -1,4 +1,6 @@
-
+from matplotlib import pyplot as plt
+import numpy as np
+import pandas as pd
 
 recent_mice = ['445_1', '447_2', '447_3', '447_4',
                '550_1', '551_5', '551_2', '551_3', '551_4','551_5', '619_1', '619_2', '619_3', '620_2']#,

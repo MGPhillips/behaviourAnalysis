@@ -1,3 +1,7 @@
+from matplotlib import pyplot as plt
+import numpy as np
+import pandas as pd
+
 fig, ax = plt.subplots()
 
 for trial in flight_df.loc[(flight_df['expt_type'] == 'light') &

@@ -1,3 +1,7 @@
+from matplotlib import pyplot as plt
+import numpy as np
+import pandas as pd
+
 flight_df['flight_success'] = flight_df.apply(get_flight_success, args=(40 * 30,), axis=1)
 
 recent_mice_df = flight_df

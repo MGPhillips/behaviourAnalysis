@@ -1,4 +1,8 @@
 
+import numpy as np
+from pylab import *
+import pandas as pd
+
 def get_speed(row):
 
     traj_x, traj_y = row['x'], row['y']

@@ -1,4 +1,45 @@
 
+import csv
+import yaml
+from os import walk
+import h5py
+import re
+from nptdms import TdmsFile
+import numpy as np
+from pylab import *
+
+def load_yaml(fpath):
+    """ load settings from a yaml file and return them as a dictionary """
+    with open(fpath, 'r') as f:
+        settings = yaml.load(f)
+    return settings
+
+def load_paths():
+    """ load PATHS.yml to set all the user-specific paths correctly """
+    filename = './PATHS.yml'
+    return load_yaml(filename)
+
+def get_directories(exp_info, to_exclude):
+    bases = []
+    h5_directories = []
+    tdms_directories = []
+
+    for key in exp_info:
+        bases.append(exp_info[key]['base_folder'] + '\\' + key)
+
+    for base in bases:
+        for exc in to_exclude:
+            if exc in base:
+                continue
+
+        h5_direct, filenames = get_filetype_paths('.h5', base)
+
+        tdms_direct, filenames = get_filetype_paths('.tdms', base)
+        h5_directories = h5_directories + h5_direct
+        tdms_directories = tdms_directories + tdms_direct
+
+    return h5_directories, tdms_directories
+
 def get_filetype_paths(filetype, base):
     # Takes a desired filetype and a base directory and returns a list of their locations
     # within it's subdirectories
@@ -16,11 +57,10 @@ def get_filetype_paths(filetype, base):
 
                 # If filetype matches the desired, append to list
                 if file.endswith(filetype):
-                    fpath.append(dirpat h+ '/' + file)  #
+                    fpath.append(dirpath + '/' + file)  #
                     f.append('/' + file)
 
     return fpath, f
-
 
 def get_tdms_indexes(path):
     indices = []
@@ -67,12 +107,9 @@ def get_tdms_indexes(path):
 
     return indices
 
-def load_experimental_info(exp_info, file_path):
-    # exp info should be an empty dict
-    # file path should be a path to the .csv file with the experimental info in it
+def populate_exp_info(exp_info, csv_path):
 
-    exp_info = {}
-    reader = csv.DictReader(open('E:\\big_arena_analysis\\dwm_darklight_analysis.csv'))
+    reader = csv.DictReader(open(csv_path))
 
     for row in reader:
         key = row['experiment']
@@ -87,7 +124,6 @@ def load_experimental_info(exp_info, file_path):
             exp_info[key][ind] = row[ind]
 
     return exp_info
-
 
 def group(lst, n):
     """group([0,3,4,10,2,3], 2) => [(0,3), (4,10), (2,3)]
@@ -135,7 +171,9 @@ def get_mean_shelter_location(shelter_locations, nest_dict):
 
 #nest_dict
 
-def build_data_dict(data_dict, h5_directories, tdms_directories, exp_info):
+def build_data_dict(h5_directories, tdms_directories, exp_info, DLC_network, to_exclude):
+
+    data_dict = {}
 
     for i, file in enumerate(h5_directories):
 
@@ -183,7 +221,7 @@ def build_data_dict(data_dict, h5_directories, tdms_directories, exp_info):
                 head_x, head_y = np.asarray(head_x), np.asarray(head_y)
                 tail_x, tail_y = np.asarray(tail_x), np.asarray(tail_y)
 
-                fix_tracking(traj_x, traj_y, zeros_fun, 50)
+                # fix_tracking(traj_x, traj_y, zeros_fun, 50)
 
                 data_dict[exp_name]['x'], data_dict[exp_name]['y'] = traj_x, traj_y
                 data_dict[exp_name]['head_x'], data_dict[exp_name]['head_y'] = head_x, head_y

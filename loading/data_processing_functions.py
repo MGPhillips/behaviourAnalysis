@@ -1,4 +1,6 @@
 
+import numpy as np
+from pylab import *
 
 
 def zeros_fun(arr):
