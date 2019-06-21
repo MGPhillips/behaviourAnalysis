@@ -175,6 +175,9 @@ def build_data_dict(h5_directories, tdms_directories, exp_info, DLC_network, to_
 
     data_dict = {}
 
+    recent_mice = ['445_1', '447_2', '447_3', '447_4', '551_1', '620_1', '620_3', '445_5', '445_3', '445_2', '445_4',
+                   '550_1', '551_5', '551_2', '551_3', '551_4', '551_5', '619_1', '619_2', '619_3', '620_2']
+
     for i, file in enumerate(h5_directories):
 
         print(file)
@@ -185,9 +188,11 @@ def build_data_dict(h5_directories, tdms_directories, exp_info, DLC_network, to_
 
         exp_name = file[slash_pos[-1] + 1:slash_pos[-1] + exp_name_len + 1]
 
+        print(exp_name)
+
         try:
             experiment_info = exp_info[exp_name[:-1]]
-
+            print(exp_info[exp_name[:-1]])
             if experiment_info['mouse_id'] not in recent_mice:
                 print('Mouse', experiment_info['mouse_id'], 'not in recent_mice')
                 continue
@@ -228,7 +233,7 @@ def build_data_dict(h5_directories, tdms_directories, exp_info, DLC_network, to_
                 data_dict[exp_name]['tail_x'], data_dict[exp_name]['tail_y'] = tail_x, tail_y
 
                 try:
-                    # experiment_info = exp_info[exp_name[:-1]]
+                    experiment_info = exp_info[exp_name[:-1]]
 
                     data_dict[exp_name]['experiment_type'] = experiment_info['expt_type']
                     data_dict[exp_name]['mouse_id'] = experiment_info['mouse_id']

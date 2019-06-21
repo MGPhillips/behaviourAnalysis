@@ -3,11 +3,42 @@ import numpy as np
 from pylab import *
 import pandas as pd
 
+def apply_proccessing_data_df(data_df, shelter_locations):
+
+    data_df['distance_per_frame'] = data_df.apply(get_speed, axis=1)
+    data_df['start_position'] = data_df.apply(get_start_position, axis=1)
+    data_df['angles'] = data_df.apply(get_angle, axis=1)
+    data_df['shelter_position'] = data_df.apply(add_shelter_location, args=(shelter_locations,), axis=1)
+    data_df['shelter_distance'] = data_df.apply(get_shelter_distance, axis=1)
+    data_df['start_distance'] = data_df.apply(get_start_distance, axis=1)
+    data_df['conv_xy'] = data_df.apply(convert_coordinate_space, axis=1)
+    data_df['vectors'] = data_df.apply(get_vectors, axis=1)
+    data_df['distance_travelled_before'] = data_df.apply(get_distance_travelled_before_flight, axis=1)
+    data_df['speed_change'] = data_df.apply(get_speed_change, axis=1)
+
+    return data_df
+
+def produce_flight_df(data_df, exp_info):
+
+    flight_dict = {}
+    flight_dict = data_df.apply(populate_flight_dict, args=(flight_dict, exp_info,), axis=1)
+    flight_df = pd.DataFrame.from_dict(flight_dict[0], orient='index')
+
+    flight_df['speed_change'] = flight_df.apply(get_speed_change, axis=1)
+    flight_df['abs_speed_change_sum'] = flight_df.apply(get_abs_speed_change_sum, axis=1)
+    flight_df['flight_success'] = flight_df.apply(get_flight_success, args=(30 * 30,), axis=1)
+    flight_df['vec_angles'] = flight_df.apply(get_angle_between_traj_points, axis=1)
+    flight_df['flight_dist_ratio'] = flight_df.apply(get_flight_dist_ratio, axis=1)
+    flight_df['t_to_nest'] = flight_df.apply(get_t_to_nest, axis=1)
+    flight_df['start_distance'] = flight_df.apply(get_start_distance, axis=1)
+
+    return flight_df
+
 def get_speed(row):
 
     traj_x, traj_y = row['x'], row['y']
     dx, dy = (traj_x[1:] - traj_x[:-1], traj_y[1:] - traj_y[:-1])
-    distance_travelled = np.sqrt(d x* * 2 +d y* *2)
+    distance_travelled = np.sqrt(dx ** 2 + dy **2)
 
     return distance_travelled
 
@@ -38,7 +69,7 @@ def compute_distance(coord1, coord2):
 
     dx, dy = (coord2[0] - coord1[0], coord2[1] - coord1[1])
 
-    distance = np.sqrt(d x* * 2 +d y* *2)
+    distance = np.sqrt(dx ** 2 + dy ** 2)
 
     return distance
 
@@ -47,8 +78,6 @@ def flip_head_tail(row, i):
     head_x ,head_y ,tail_x ,tail_y = row['tail_x'][i], row['tail_y'][i], row['head_x'], row['head_y']
 
     return head_x, head_y, tail_x, tail_y
-
-
 
 def correct_orientation(row):
     print(row.name)
@@ -180,11 +209,11 @@ def get_shelter_distance(row):
 
     return shelter_distances
 
-def add_shelter_location(row):
+def add_shelter_location(row, shelter_locations):
     shelter_position = [0, 0]
     exp = row.name[:-1]
-    if exp in nest_mean_dict:
-        shelter_position = nest_mean_dict[exp]
+    if exp in shelter_locations:
+        shelter_position = shelter_locations[exp]
 
     return shelter_position
 
@@ -217,7 +246,6 @@ def convert_coordinate_space(row):
         conv_xy.append([converted_x, converted_y])
     return conv_xy
 
-
 def get_distance_travelled_before_flight(row):
     distances = []
     for ind in row['stimulus_indices']:
@@ -233,21 +261,17 @@ def get_distance_travelled_before_flight(row):
 
     return distances
 
-
 def get_speed_change(row):
     return np.ediff1d(row['distance_per_frame'], to_begin=0)
 
-
 def get_abs_speed_change_sum(row):
     return sum(np.absolute(row['speed_change']))
-
 
 def get_flight_data(row, flight_dict, datatype, start_ind, end_ind):
     flight_dict[datatype] = row[datatype][start_ind:end_ind]
     return flight_dict
 
-
-def populate_flight_dict(row, flight_dict):
+def populate_flight_dict(row, flight_dict, exp_info):
     dist = 50  # distance cutoff for definition of 'in nest'
     pre_flight_window = 300  # in frames
 
@@ -274,17 +298,17 @@ def populate_flight_dict(row, flight_dict):
         flight_dict[global_index]['mouse_id'] = mouse_id
         flight_dict[global_index]['stimulus_index'] = ind
 
-        try:
-            if experiment_subvid == exp_info[experiment_name]['dwm_trial']:
-                flight_dict[global_index]['dwm_trial'] = True
+#        try:
+        if experiment_subvid == exp_info[experiment_name]['dwm_trial']:
+            flight_dict[global_index]['dwm_trial'] = True
 
-            elif experiment_subvid == exp_info[experiment_name]['dwm_trial']:
-                flight_dict[global_index]['dwm_trial'] = False
+        elif experiment_subvid == exp_info[experiment_name]['dwm_trial']:
+            flight_dict[global_index]['dwm_trial'] = False
 
-            flight_dict[global_index]['expt_type'] = exp_info[experiment_name]['expt_type']
+        flight_dict[global_index]['expt_type'] = exp_info[experiment_name]['expt_type']
 
-        except:
-            print('Trial not in dicts')
+        #except:
+        #    print('Trial not in dicts')
 
         # Collect trials from the same session and create a count of them
         trial_num_count = 0
@@ -330,7 +354,6 @@ def populate_flight_dict(row, flight_dict):
 
     return flight_dict
 
-
 def get_flight_end_frame(row):
     row_name = row.name
 
@@ -338,7 +361,6 @@ def smooth_array(y, box_pts):
     box = np.ones(box_pts)/box_pts
     y_smooth = np.convolve(y, box, mode='same')
     return y_smooth
-
 
 def angle_between(v1, v2):
     """Returns the angle in radians between vectors 'v1' and 'v2'"""
@@ -353,7 +375,6 @@ def get_angle_between_traj_points(row):
         vec_angles.append(angle_between(pair[0], pair[1]))
     return vec_angles
 
-
 def get_flight_dist_ratio(row):
     dist_ratio = False
     try:
@@ -366,7 +387,6 @@ def get_flight_dist_ratio(row):
         ('Could not compute dist ratio. Ind may be out of range')
     return dist_ratio
 
-
 def get_t_to_nest(row):
     return len(row['x'][300:])
 
@@ -376,7 +396,6 @@ def get_start_distance(row):
     except:
         d = 0
     return d
-
 
 def get_flight_success(row, time_cutoff):
     min_speed = 0.5

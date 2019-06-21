@@ -94,11 +94,12 @@ def plot_speed_heatmap(df_rows):
 
     return rankedData
 
-
 light_flights = flight_df.loc[(flight_df['expt_type'] == 'light') &
                               (flight_df['flight_success'] == 'successful')]
 dark_flights = flight_df.loc[(flight_df['expt_type'] == 'dark') &
                              (flight_df['flight_success'] == 'successful')]
 
-light_d = plot_speed_heatmap(light_flights)
-dark_d = plot_speed_heatmap(dark_flights)
+light_df = plot_speed_heatmap(light_flights)
+dark_df = plot_speed_heatmap(dark_flights)
+
+#plot_speed_heatmap(flight_df.loc[(flight_df['flight_success'] == 'successful')])
