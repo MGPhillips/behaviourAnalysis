@@ -27,4 +27,5 @@ ax.tick_params(axis='both', which='major', labelsize=14, width=2)
 
 
 plt.savefig('E:\\Dropbox (UCL - SWC)\\big_Arena\\analysis\\upgrade_figures\\test.png', dpi=1000)
+plt.show()
 #plt.savefig('E:\\Dropbox (UCL - SWC)\\big_Arena\\analysis\\upgrade_figures\\test.eps')

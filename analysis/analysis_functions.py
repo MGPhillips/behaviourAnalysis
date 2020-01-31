@@ -16,12 +16,14 @@ def apply_proccessing_data_df(data_df, shelter_locations):
     data_df['distance_travelled_before'] = data_df.apply(get_distance_travelled_before_flight, axis=1)
     data_df['speed_change'] = data_df.apply(get_speed_change, axis=1)
 
+    print('SHELTER POSITIONS:', data_df['shelter_position'])
+
     return data_df
 
 def produce_flight_df(data_df, exp_info):
 
     flight_dict = {}
-    flight_dict = data_df.apply(populate_flight_dict, args=(flight_dict, exp_info,), axis=1)
+    flight_dict = data_df.apply(populate_flight_dict_non_dist, args=(flight_dict, exp_info,), axis=1)
     flight_df = pd.DataFrame.from_dict(flight_dict[0], orient='index')
 
     flight_df['speed_change'] = flight_df.apply(get_speed_change, axis=1)
@@ -197,6 +199,7 @@ def get_start_distance(row):
     return start_distances
 
 def get_angle(row):
+
     x, y = row['x'], row['y']
     nest_coord = [0, 0]
     angles = np.arctan2(y - nest_coord[1], x - nest_coord[0])
@@ -271,6 +274,96 @@ def get_flight_data(row, flight_dict, datatype, start_ind, end_ind):
     flight_dict[datatype] = row[datatype][start_ind:end_ind]
     return flight_dict
 
+def populate_flight_dict_non_dist(row, flight_dict, exp_info):
+    dist = 50  # distance cutoff for definition of 'in nest'
+    pre_flight_window = 300  # in frames
+    post_stim_window = 900 # in frames
+    # Get name of experiment and set it as a variaBle ready to title ROw in df
+    row_name = row.name
+    print(row_name)
+
+    experiment_name = row_name[:-1]
+    experiment_subvid = row_name[-1]
+    shelter_position = row['shelter_position']
+    mouse_id = row['mouse_id']
+
+    print(exp_info)
+
+    for i, ind in enumerate(row['stimulus_indices']):
+
+        # Global index = place at which this flight will be entered into df (i.e. len of dict)
+        global_index = str(len(flight_dict))
+
+        # Create dict entry for flight
+        flight_dict[global_index] = {}
+
+        # Enter basic trial info
+        flight_dict[global_index]['experiment_name'] = experiment_name
+        flight_dict[global_index]['subvid'] = experiment_subvid
+        flight_dict[global_index]['mouse_id'] = mouse_id
+        flight_dict[global_index]['stimulus_index'] = ind
+
+#        try:
+        if experiment_subvid == exp_info[experiment_name]['dwm_trial']:
+            flight_dict[global_index]['dwm_trial'] = True
+
+        elif experiment_subvid == exp_info[experiment_name]['dwm_trial']:
+            flight_dict[global_index]['dwm_trial'] = False
+
+        flight_dict[global_index]['expt_type'] = exp_info[experiment_name]['expt_type']
+
+        #except:
+        #    print('Trial not in dicts')
+
+        # Collect trials from the same session and create a count of them
+        trial_num_count = 0
+        for g_ind in flight_dict:
+            if flight_dict[g_ind]['experiment_name'] == experiment_name:
+                trial_num_count += 1
+
+        flight_dict[global_index]['trial_num'] = trial_num_count
+
+        # Find start index of trial
+        flight_start_index = ind - pre_flight_window
+
+        # Find the end index of the trial, set to -1 if not found. Logic:
+        # 1) Find the point after the start index where distance to nest is greater than 'dist'
+        # 2) If np.where returns nothing, set it to -1
+        # 3) Otherwise get the index and add it to the start of flight to get index of end
+
+        #if len(np.where(row['shelter_distance'][ind:-1] < dist)[0]) == 0:
+        #    flight_end_index = -1
+        #elif len(np.where(row['shelter_distance'][ind:-1] < dist)[0]) != 0:
+        #    flight_end_index = ind + #np.where(row['shelter_distance'][ind:-1] < dist)[0][0]
+
+        flight_end_index = ind + post_stim_window
+
+        data_to_move = ['x', 'y', 'head_x', 'head_y', 'tail_x', 'tail_y',
+                        'angles', 'distance_per_frame', 'shelter_distance', 'vectors', 'speed_change',
+                        'shelter_position']
+
+        for dtype in data_to_move:
+            flight_dict[global_index] = get_flight_data(
+                row, flight_dict[global_index], dtype, flight_start_index, flight_end_index)
+
+        flight_dict[global_index]['shelter_position'] = shelter_position
+
+        if len(row['conv_xy']) - 1 >= i:
+
+            if len(row['conv_xy']) > 0:
+                print(i)
+                flight_dict[global_index]['conv_xy'] = row['conv_xy'][i]
+
+            elif len(row['conv_xy']) == 0:
+                flight_dict[global_index]['conv_xy'] = []
+
+        try:
+            flight_dict[global_index]['distance_travelled_before'] = row['distance_travelled_before'][i]
+        except:
+            flight_dict[global_index]['distance_travelled_before'] = NaN
+
+    return flight_dict
+
 def populate_flight_dict(row, flight_dict, exp_info):
     dist = 50  # distance cutoff for definition of 'in nest'
     pre_flight_window = 300  # in frames
@@ -281,8 +374,10 @@ def populate_flight_dict(row, flight_dict, exp_info):
 
     experiment_name = row_name[:-1]
     experiment_subvid = row_name[-1]
-
+    shelter_position = row['shelter_position']
     mouse_id = row['mouse_id']
+
+    print(exp_info)
 
     for i, ind in enumerate(row['stimulus_indices']):
 
@@ -332,11 +427,14 @@ def populate_flight_dict(row, flight_dict, exp_info):
             flight_end_index = ind + np.where(row['shelter_distance'][ind:-1] < dist)[0][0]
 
         data_to_move = ['x', 'y', 'head_x', 'head_y', 'tail_x', 'tail_y',
-                        'angles', 'distance_per_frame', 'shelter_distance', 'vectors', 'speed_change']
+                        'angles', 'distance_per_frame', 'shelter_distance', 'vectors', 'speed_change',
+                        'shelter_position']
 
         for dtype in data_to_move:
             flight_dict[global_index] = get_flight_data(
                 row, flight_dict[global_index], dtype, flight_start_index, flight_end_index)
+
+        flight_dict[global_index]['shelter_position'] = shelter_position
 
         if len(row['conv_xy']) - 1 >= i:
 

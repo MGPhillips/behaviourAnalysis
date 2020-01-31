@@ -1,12 +1,17 @@
 
 import csv
 import yaml
+import pandas as pd
 from os import walk
 import h5py
 import re
 from nptdms import TdmsFile
 import numpy as np
+from itertools import chain
 from pylab import *
+
+from load_functions import *
+from data_processing_functions import *
 
 def load_yaml(fpath):
     """ load settings from a yaml file and return them as a dictionary """
@@ -148,21 +153,39 @@ def load_nest_info(nest_dict, nest_info_path):
 
     return nest_dict
 
-def get_mean_shelter_location(shelter_locations, nest_dict):
+def get_mean_shelter_location(shelter_locations, nest_df):
 
-    for key in nest_dict:
+    for key in nest_df:
         x_mean, y_mean = 0, 0
-        for i, coord in enumerate(nest_dict[key]):
+        print('Key:', key, 'Nest df:', nest_df[key])
+        for i, coord in enumerate(nest_df[key]):
             if i == 0:
-                continue
-            x_mean += coord[0]
-            y_mean += coord[1]
+               continue
 
-        x_mean, y_mean = x_mean / 5, y_mean / 5
+            print()
+
+            coords = [int(x) for x in nest_df[key][i].replace('[','').replace(']','').replace(' ','').split(',')]
+
+            x_mean += coords[0]
+            y_mean += coords[1]
+
+        x_mean, y_mean = x_mean / 4, y_mean / 4
 
         shelter_locations[key] = [x_mean, y_mean]
 
     return shelter_locations
+
+def save_out_nest_positions(path, nest_dict):
+
+    with open(path, "w") as outfile:
+        writer = csv.writer(outfile)
+        writer.writerow(nest_dict.keys())
+        writer.writerows(zip(*nest_dict.values()))
+
+
+def load_nest_df_from_csv(path):
+
+    return pd.read_csv(path)
 
 #############with open('E:\\big_arena_analysis\\nest_locations.csv', 'w') as f:  # Just use 'w' mode in 3.x
 
@@ -171,12 +194,15 @@ def get_mean_shelter_location(shelter_locations, nest_dict):
 
 #nest_dict
 
-def build_data_dict(h5_directories, tdms_directories, exp_info, DLC_network, to_exclude):
+def build_data_dict(h5_directories, tdms_directories, exp_info, DLC_networks, to_exclude):
 
     data_dict = {}
 
-    recent_mice = ['445_1', '447_2', '447_3', '447_4', '551_1', '620_1', '620_3', '445_5', '445_3', '445_2', '445_4',
-                   '550_1', '551_5', '551_2', '551_3', '551_4', '551_5', '619_1', '619_2', '619_3', '620_2']
+    #recent_mice = ['413_1', '413_2', '413_3', '413_4', '445_1', '447_2', '447_3', '447_4', '551_1', '620_1', '620_3', '445_5', '445_3', '445_2', '445_4',
+    #               '550_1', '551_5', '551_2', '551_3', '551_4', '551_5', '619_1', '619_2', '619_3', '620_2', '708_1', '707_1', '706_1', '705_1', '704_1',
+    #               '672_1', '674_4', '671_1', '668_1', '670_1', '669_1', '677_1', '674_1', '672_1', '668_1', '672_1', '654_1', '669_1', '676_1', '675_1',
+    #               '673_1', '668_1', '654_1', '623_1', '622_1', '621_1', '630_1', '625_1', '319_3', '319_4', '319_5', '320_4', '320_3', '337_2', '337_1'
+    #               '370_3', '370_4', '370_1', ]
 
     for i, file in enumerate(h5_directories):
 
@@ -193,13 +219,13 @@ def build_data_dict(h5_directories, tdms_directories, exp_info, DLC_network, to_
         try:
             experiment_info = exp_info[exp_name[:-1]]
             print(exp_info[exp_name[:-1]])
-            if experiment_info['mouse_id'] not in recent_mice:
-                print('Mouse', experiment_info['mouse_id'], 'not in recent_mice')
-                continue
+            #if experiment_info['mouse_id'] not in recent_mice:
+            #    print('Mouse', experiment_info['mouse_id'], 'not in recent_mice')
+            #    continue
         except:
             print('No exp info for', exp_name)
 
-        if DLC_network in file:  # and file[49:59] not in to_exclude: #in shelter_locations:
+        if any(dlc in file for dlc in DLC_networks):  # and file[49:59] not in to_exclude: #in shelter_locations:
 
             print('Loading...', exp_name)
 
@@ -226,7 +252,7 @@ def build_data_dict(h5_directories, tdms_directories, exp_info, DLC_network, to_
                 head_x, head_y = np.asarray(head_x), np.asarray(head_y)
                 tail_x, tail_y = np.asarray(tail_x), np.asarray(tail_y)
 
-                # fix_tracking(traj_x, traj_y, zeros_fun, 50)
+                fix_tracking(traj_x, traj_y, zeros_fun, 50)
 
                 data_dict[exp_name]['x'], data_dict[exp_name]['y'] = traj_x, traj_y
                 data_dict[exp_name]['head_x'], data_dict[exp_name]['head_y'] = head_x, head_y

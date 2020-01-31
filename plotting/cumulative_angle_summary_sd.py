@@ -1,6 +1,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
+from scipy import interpolate
 
 flight_df['flight_success'] = flight_df.apply(get_flight_success, args=(40 * 30,), axis=1)
 
@@ -29,7 +30,7 @@ for ind in recent_mice_df.index:
     x_interpolate = np.linspace(0, len(cumulative) - 1, 1000)
     x_cum = np.arange(len(cumulative))
 
-    f_int = interp1d(x_cum, cumulative)
+    f_int = interpolate.interp1d(x_cum, cumulative)
 
     if np.isnan(f_int(x_interpolate)).any():
         print(recent_mice_df['experiment_name'][ind])
@@ -84,8 +85,7 @@ ax[0].fill_between(x_plot, light_cum_means+light_cum_std, light_cum_means-light_
 
 ax[1].plot(x_plot, normalised_dark_cum_means,
            color='magenta', linewidth= 3.0, label='Dark')
-ax[1].fill_between(x_plot, normalised_dark_cum_means+normalised_dark_cum_std, normalised_dark_cum_means-normalised_dark_cum_std,
-                  color='magenta', alpha=0.3)
+
 
 ax[1].plot(x_plot, normalised_light_cum_means,
           color='blue', linewidth= 3.0, label='Light')
