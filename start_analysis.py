@@ -1,5 +1,6 @@
-
+import numpy as np
 import pandas as pd
+
 from os import walk
 import yaml
 
@@ -7,12 +8,11 @@ import sys
 sys.path.insert(0, r'C:\Users\matthewp.W221N\Documents\GitHub\behaviourAnalysisMP\analysis')
 
 from analysis_functions import *
-
 from data_processing_functions import *
 from load_functions import *
 from loadsave_pickle import *
 #from ./config/config.yml import
-# TODO: Manage imports, setup exp info
+## TODO: Manage imports, setup exp info
 
 load_data_df_from_pickle = False
 save_out_data_df = True
@@ -25,14 +25,18 @@ produce_data_df = True
 generate_flight_df = True
 
 exp_info = {}
-exp_info_path = 'E:\\big_arena_analysis\\dwm_trial_analysis.csv'  #dwm_darklight_analysis.csv'
-
+exp_info_path = 'E:\\legacy\\big_arena_analysis\\dwm_darklight_analysis.csv' #dwm_trial_analysis.csv'  #
+#exp_info_path = 'E:\\legacy\\big_arena_analysis\\shelter_raise_trial_analysis.csv'
 exp_info = populate_exp_info(exp_info, exp_info_path)
+
+print('done')
+
+#%%
 
 if produce_data_df:
 
-    dark_base = 'E:\\Dropbox (UCL - SWC)\\big_Arena\\experiments\\dwm\\data\\dark'
-    light_base = 'E:\\Dropbox (UCL - SWC)\\big_Arena\\experiments\\dwm\\data\\basic'
+    #dark_base = 'E:\\Dropbox (UCL - SWC)\\big_Arena\\experiments\\dwm\\data\\dark'
+    #light_base = 'E:\\Dropbox (UCL - SWC)\\big_Arena\\experiments\\dwm\\data\\basic'
 
     DLC_network = 'DeepCut_resnet50_phillips_mg_700000'
 
@@ -55,7 +59,7 @@ if load_data_df_from_pickle:
 if generate_flight_df:
 
     nest_dict = {}
-    nest_dict = load_nest_info(nest_dict, 'E:\\big_arena_analysis\\nest_locations.csv')
+    nest_dict = load_nest_info(nest_dict, 'E:\\legacy\\big_arena_analysis\\nest_locations.csv')
 
     shelter_locations = {}
     shelter_locations = get_mean_shelter_location(shelter_locations, nest_dict)

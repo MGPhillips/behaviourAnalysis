@@ -1,6 +1,6 @@
 
 import csv
-import yaml
+#import yaml
 import pandas as pd
 from os import walk
 import h5py
@@ -68,8 +68,9 @@ def get_filetype_paths(filetype, base):
     return fpath, f
 
 def get_tdms_indexes(path):
-    indices = []
 
+    indices = []
+    stim_types = []
     tdms_file = TdmsFile(path)
 
     audio_completed = False
@@ -78,12 +79,13 @@ def get_tdms_indexes(path):
     visual_keys = ['Visual Stimulation', 'Visual Stimulis']
 
     for ind_type in tdms_file.groups():
+
         if not audio_completed and ind_type in audio_keys:
 
             if ind_type == 'Audio Stimulation':
                 indices = indices + [
                     x for x in np.where(tdms_file.group_channels(ind_type)[1].data != 0)[0]]
-
+                stim_types.append('Audio')
                 audio_completed = True
 
             if ind_type == 'Audio Stimulis':
@@ -92,6 +94,7 @@ def get_tdms_indexes(path):
 
                     indices.append(int(string.replace(" ", "")))
 
+                stim_types.append('Audio')
                 audio_completed = True
 
         if not visual_completed and ind_type in visual_keys:
@@ -101,16 +104,16 @@ def get_tdms_indexes(path):
                     string = obj.channel.split('-')[0]
 
                     indices.append(int(string.replace(" ", "")))
-
+                stim_types.append('Visual')
                 visual_completed = True
 
             if ind_type == 'Visual Stimulation':
                 indices = indices + [
                     x for x in np.where(tdms_file.group_channels(ind_type)[1].data != 0)[0]]
-
+                stim_types.append('Visual')
                 visual_completed = True
 
-    return indices
+    return indices, stim_types
 
 def populate_exp_info(exp_info, csv_path):
 
@@ -181,7 +184,6 @@ def save_out_nest_positions(path, nest_dict):
         writer = csv.writer(outfile)
         writer.writerow(nest_dict.keys())
         writer.writerows(zip(*nest_dict.values()))
-
 
 def load_nest_df_from_csv(path):
 
@@ -275,7 +277,7 @@ def build_data_dict(h5_directories, tdms_directories, exp_info, DLC_networks, to
 
                 for tdms_dir in tdms_directories:
                     if exp_name in tdms_dir:
-                        data_dict[exp_name]['stimulus_indices'] = get_tdms_indexes(tdms_dir)
+                        data_dict[exp_name]['stimulus_indices'], data_dict[exp_name]['stimulus_types'] = get_tdms_indexes(tdms_dir)
 
     return data_dict
 

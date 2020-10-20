@@ -6,6 +6,6 @@ def load_pickle_to_pandas(path):
 
 def save_pd_to_pickle(df, savepath):
 
-    df.to_pickle(savepath)
+    return df.to_pickle(savepath)
 
 
